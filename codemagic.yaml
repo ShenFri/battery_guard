@@ -1,0 +1,36 @@
+workflows:
+  ios-testflight:
+    name: iOS TestFlight
+    instance_type: mac_mini_m2
+    max_build_duration: 40
+    integrations:
+      app_store_connect: BatteryGuardKey   # 在 Codemagic 后台 Integrations 里配置的 App Store Connect API Key 名称
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.example.batteryguard   # 改成你自己的 Bundle ID
+      vars:
+        BUNDLE_ID: com.example.batteryguard
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: 获取依赖
+        script: flutter pub get
+      - name: 安装 Pods
+        script: |
+          cd ios
+          pod install
+      - name: 应用签名配置
+        script: xcode-project use-profiles
+      - name: 构建 IPA
+        script: |
+          flutter build ipa --release \
+            --build-number=$(($(date +%s) / 60)) \
+            --export-options-plist=/Users/builder/export_options.plist
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
